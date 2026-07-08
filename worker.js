@@ -1,5 +1,11 @@
 /* Web Worker for CharmeraTranscoder background execution */
 
+// Mock browser-specific variables to satisfy Webpack environment checks in Web Worker scope
+self.document = {
+    baseURI: self.location.href,
+    getElementsByTagName: () => []
+};
+
 // Load the self-contained ffmpeg.wasm wrapper script
 importScripts('ffmpeg/ffmpeg.min.js');
 
