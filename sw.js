@@ -1,6 +1,6 @@
 /* Service Worker for CharmeraTranscoder PWA */
 
-const CACHE_NAME = 'charmera-transcoder-v5';
+const CACHE_NAME = 'charmera-transcoder-v6';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -12,7 +12,8 @@ const PRECACHE_ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     './ffmpeg/ffmpeg.min.js',
     './ffmpeg/ffmpeg-core.js',
-    './ffmpeg/ffmpeg-core.wasm'
+    './ffmpeg/ffmpeg-core.wasm',
+    './ffmpeg/ffmpeg-core.worker.js'
 ];
 
 // Helper to check and override MIME types to resolve Windows Registry / Python server bugs

@@ -93,6 +93,7 @@ async function initFFmpeg() {
     const { createFFmpeg } = window.FFmpeg;
     ffmpeg = createFFmpeg({
         corePath: new URL('ffmpeg/ffmpeg-core.js?v=11', window.location.href).href,
+        mainName: 'main',
         log: false // We capture logs manually via setLogger
     });
 
