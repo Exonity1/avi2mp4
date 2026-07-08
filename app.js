@@ -383,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    /* Commented out temporarily for debugging
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -395,6 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
+    */
 
     // Wake Lock Visibility Change Handler
     // Re-acquire screen wake lock if user switches tabs and back during conversion
