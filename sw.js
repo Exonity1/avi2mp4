@@ -11,10 +11,10 @@ const PRECACHE_ASSETS = [
     'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     'https://cdn.tailwindcss.com',
-    'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.min.js',
-    'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/814.ffmpeg.js',
-    'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-    'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
+    './ffmpeg/ffmpeg.min.js',
+    './ffmpeg/814.ffmpeg.js',
+    './ffmpeg/ffmpeg-core.js',
+    './ffmpeg/ffmpeg-core.wasm'
 ];
 
 // Install Event - Pre-cache critical files

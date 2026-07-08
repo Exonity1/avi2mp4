@@ -103,19 +103,17 @@ async function initFFmpeg() {
         updateProgress(progress, 'Transcoding video streams...');
     });
 
-    // Load libraries from jsDelivr CDN
+    // Load libraries locally from the project directory
     // Using single-threaded core to support static GitHub Pages hosting
-    const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
-    const ffmpegURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd';
     try {
-        appendLog('[Transcoder] Downloading core libraries (~31MB)...');
-        updateProgress(0.1, 'Downloading core engine (cached on next load)...');
+        appendLog('[Transcoder] Loading local transcoder assets (~31MB)...');
+        updateProgress(0.1, 'Loading local transcoder engine...');
         
-        const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-        const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
-        const classWorkerURL = await toBlobURL(`${ffmpegURL}/814.ffmpeg.js`, 'text/javascript');
+        const coreURL = new URL('ffmpeg/ffmpeg-core.js', window.location.href).href;
+        const wasmURL = new URL('ffmpeg/ffmpeg-core.wasm', window.location.href).href;
+        const classWorkerURL = new URL('ffmpeg/814.ffmpeg.js', window.location.href).href;
 
-        updateProgress(0.3, 'Loading core WASM binary...');
+        updateProgress(0.3, 'Initializing WebAssembly binary...');
         await ffmpeg.load({ coreURL, wasmURL, classWorkerURL });
         
         appendLog('[Transcoder] Engine loaded successfully.');
@@ -233,8 +231,25 @@ async function startTranscoding() {
         appendLog('[Transcoder] Process completed successfully.');
 
     } catch (error) {
-        appendLog(`[Critical Error] ${error.message}`);
-        alert(`An error occurred during conversion: ${error.message}\nCheck logs for more details.`);
+        console.error('Conversion error:', error);
+        let errorMsg = 'Unknown error';
+        if (error) {
+            if (error.message) {
+                errorMsg = error.message;
+            } else if (typeof error === 'string') {
+                errorMsg = error;
+            } else if (error.toString && error.toString() !== '[object Object]') {
+                errorMsg = error.toString();
+            } else {
+                try {
+                    errorMsg = JSON.stringify(error);
+                } catch (e) {
+                    errorMsg = 'Unserializable error object';
+                }
+            }
+        }
+        appendLog(`[Critical Error] ${errorMsg}`);
+        alert(`An error occurred during conversion: ${errorMsg}\nCheck logs for more details.`);
         
         // Restore controls
         document.getElementById('progressPanel').classList.add('hidden');
