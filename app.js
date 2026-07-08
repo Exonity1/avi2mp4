@@ -16,7 +16,7 @@ let rejectTranscodePromise = null;
 function initWorker() {
     if (transcoderWorker) return;
 
-    transcoderWorker = new Worker('worker.js');
+    transcoderWorker = new Worker('worker.js?v=11');
 
     transcoderWorker.onmessage = (event) => {
         const { type, data } = event.data;
