@@ -109,9 +109,10 @@ async function initFFmpeg() {
         appendLog('[Transcoder] Loading local transcoder assets (~31MB)...');
         updateProgress(0.1, 'Loading local transcoder engine...');
         
-        const coreURL = new URL('ffmpeg/ffmpeg-core.js', window.location.href).href;
-        const wasmURL = new URL('ffmpeg/ffmpeg-core.wasm', window.location.href).href;
-        const classWorkerURL = new URL('ffmpeg/814.ffmpeg.js', window.location.href).href;
+        const version = 'v=4';
+        const coreURL = new URL(`ffmpeg/ffmpeg-core.js?${version}`, window.location.href).href;
+        const wasmURL = new URL(`ffmpeg/ffmpeg-core.wasm?${version}`, window.location.href).href;
+        const classWorkerURL = new URL(`ffmpeg/814.ffmpeg.js?${version}`, window.location.href).href;
 
         updateProgress(0.3, 'Initializing WebAssembly binary...');
         await ffmpeg.load({ coreURL, wasmURL, classWorkerURL });
