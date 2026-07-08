@@ -1,24 +1,5 @@
 /* Core Application Logic for CharmeraTranscoder */
 
-// Force unregister any active Service Workers and clear caches to solve state conflicts
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-        if (registrations.length > 0) {
-            console.log('[DEBUG] Active Service Worker found. Force unregistering...');
-            for (let registration of registrations) {
-                registration.unregister();
-            }
-            caches.keys().then(names => {
-                for (let name of names) {
-                    caches.delete(name);
-                }
-            });
-            setTimeout(() => {
-                window.location.reload();
-            }, 300);
-        }
-    });
-}
 
 let ffmpeg = null;
 let selectedFile = null;
@@ -109,33 +90,28 @@ async function initFFmpeg() {
     appendLog('[Transcoder] Starting conversion engine initialization...');
     updateProgress(0, 'Initializing transcoder engine...');
 
-    const { FFmpeg } = window.FFmpegWASM;
-    ffmpeg = new FFmpeg();
+    const { createFFmpeg } = window.FFmpeg;
+    ffmpeg = createFFmpeg({
+        corePath: 'ffmpeg/ffmpeg-core.js?v=11',
+        log: false // We capture logs manually via setLogger
+    });
 
     // Set up logging hook
-    ffmpeg.on('log', ({ message }) => {
+    ffmpeg.setLogger(({ message }) => {
         appendLog(message);
     });
 
     // Set up progress hook
-    ffmpeg.on('progress', ({ progress }) => {
-        // Only update progress once it starts transcoding
-        updateProgress(progress, 'Transcoding video streams...');
+    ffmpeg.setProgress(({ ratio }) => {
+        // ratio is between 0 and 1
+        updateProgress(ratio, 'Transcoding video streams...');
     });
 
-    // Load libraries locally from the project directory
-    // Using single-threaded core to support static GitHub Pages hosting
     try {
         appendLog('[Transcoder] Loading local transcoder assets (~31MB)...');
         updateProgress(0.1, 'Loading local transcoder engine...');
         
-        const version = 'v=4';
-        const coreURL = await toBlobURL(new URL(`ffmpeg/ffmpeg-core.js?${version}`, window.location.href).href, 'text/javascript');
-        const wasmURL = await toBlobURL(new URL(`ffmpeg/ffmpeg-core.wasm?${version}`, window.location.href).href, 'application/wasm');
-        const classWorkerURL = await toBlobURL(new URL(`ffmpeg/814.ffmpeg.js?${version}`, window.location.href).href, 'text/javascript');
-
-        updateProgress(0.3, 'Initializing WebAssembly binary...');
-        await ffmpeg.load({ coreURL, wasmURL, classWorkerURL });
+        await ffmpeg.load();
         
         appendLog('[Transcoder] Engine loaded successfully.');
         return ffmpeg;
@@ -196,7 +172,7 @@ async function startTranscoding() {
 
         // 3. Write to FFmpeg virtual filesystem
         appendLog('[Transcoder] Mounting video file to virtual filesystem...');
-        await engine.writeFile('input.avi', new Uint8Array(arrayBuffer));
+        engine.FS('writeFile', 'input.avi', new Uint8Array(arrayBuffer));
 
         // 4. Run transcoding command
         // Equivalent to: ffmpeg -i input.avi -c:v libx264 -crf 18 -preset [preset] -c:a aac -b:a 128k output.mp4
@@ -204,7 +180,7 @@ async function startTranscoding() {
         updateProgress(0.5, 'Starting FFmpeg encoding...');
 
         const startTime = performance.now();
-        await engine.exec([
+        await engine.run(
             '-i', 'input.avi',
             '-c:v', 'libx264',
             '-crf', '18',
@@ -212,14 +188,14 @@ async function startTranscoding() {
             '-c:a', 'aac',
             '-b:a', '128k',
             'output.mp4'
-        ]);
+        );
         const endTime = performance.now();
         appendLog(`[Transcoder] Encoding finished in ${((endTime - startTime) / 1000).toFixed(2)} seconds.`);
 
         // 5. Read result
         updateProgress(0.95, 'Reading MP4 output file...');
         appendLog('[Transcoder] Fetching encoded video from virtual filesystem...');
-        const data = await engine.readFile('output.mp4');
+        const data = engine.FS('readFile', 'output.mp4');
 
         // 6. Create Blob URL
         appendLog('[Transcoder] Creating preview URL...');
@@ -228,8 +204,8 @@ async function startTranscoding() {
 
         // 7. Clean virtual filesystem to free WebAssembly memory
         appendLog('[Transcoder] Unmounting files to release memory...');
-        await engine.deleteFile('input.avi');
-        await engine.deleteFile('output.mp4');
+        engine.FS('unlink', 'input.avi');
+        engine.FS('unlink', 'output.mp4');
 
         // 8. Populate preview & download links
         const videoPreview = document.getElementById('videoPreview');
@@ -404,7 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* Commented out temporarily for debugging
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -417,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
-    */
 
     // Wake Lock Visibility Change Handler
     // Re-acquire screen wake lock if user switches tabs and back during conversion
