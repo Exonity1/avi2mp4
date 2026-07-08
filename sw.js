@@ -1,6 +1,6 @@
 /* Service Worker for CharmeraTranscoder PWA */
 
-const CACHE_NAME = 'charmera-transcoder-v7';
+const CACHE_NAME = 'charmera-transcoder-v8';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [

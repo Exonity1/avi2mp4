@@ -110,19 +110,25 @@
                 
                 <!-- Custom Segmented Preset Picker (highly touch friendly, 48px height) -->
                 <div class="grid grid-cols-3 gap-2 p-1 bg-zinc-950 rounded-xl border border-zinc-800 select-none">
-                    <button type="button" data-preset="ultrafast" class="preset-btn py-3 px-2 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex flex-col items-center justify-center gap-0.5 active:scale-[0.97]">
-                        <span>Ultrafast</span>
-                        <span class="text-[9px] font-normal text-zinc-500">Fastest / Larger File</span>
+                    <button type="button" data-preset="ultrafast" class="preset-btn py-3 px-2 text-xs font-semibold rounded-lg text-white bg-violet-600/20 border border-violet-500/30 shadow-sm transition-all flex flex-col items-center justify-center gap-0.5 active:scale-[0.97]">
+                        <span>Ultrafast (Default)</span>
+                        <span class="text-[9px] font-normal text-violet-400/80">Fastest / Larger File</span>
                     </button>
-                    <button type="button" data-preset="fast" class="preset-btn py-3 px-2 text-xs font-semibold rounded-lg text-white bg-violet-600/20 border border-violet-500/30 shadow-sm transition-all flex flex-col items-center justify-center gap-0.5 active:scale-[0.97]">
-                        <span>Fast (Default)</span>
-                        <span class="text-[9px] font-normal text-violet-400/80">Balanced & Standard</span>
+                    <button type="button" data-preset="fast" class="preset-btn py-3 px-2 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex flex-col items-center justify-center gap-0.5 active:scale-[0.97]">
+                        <span>Fast</span>
+                        <span class="text-[9px] font-normal text-zinc-500">Balanced & Standard</span>
                     </button>
                     <button type="button" data-preset="medium" class="preset-btn py-3 px-2 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex flex-col items-center justify-center gap-0.5 active:scale-[0.97]">
                         <span>Medium</span>
                         <span class="text-[9px] font-normal text-zinc-500">Slower / Best Size</span>
                     </button>
                 </div>
+                
+                <!-- Speed warning notice -->
+                <p class="text-[10px] text-zinc-500 leading-normal mt-1 flex items-start gap-1.5 px-1">
+                    <i class="fa-solid fa-circle-info text-amber-500/80 mt-0.5 text-xs"></i>
+                    <span>Because conversion runs 100% locally in your browser to protect privacy, encoding large files (>10MB) can take several minutes. We recommend keeping "Ultrafast" selected.</span>
+                </p>
             </div>
 
             <!-- Active File Info (Shown after selection) -->

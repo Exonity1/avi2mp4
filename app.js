@@ -2,7 +2,7 @@
 
 
 let selectedFile = null;
-let selectedPreset = 'fast';
+let selectedPreset = 'ultrafast';
 let wakeLock = null;
 
 let transcoderWorker = null;
