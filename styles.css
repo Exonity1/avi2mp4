@@ -1,0 +1,106 @@
+/* Custom CSS for CharmeraTranscoder */
+
+/* Global Smoothness and Mobile Tap Adjustments */
+* {
+    -webkit-tap-highlight-color: transparent;
+    outline-color: rgba(139, 92, 246, 0.5); /* Violet glow outline for focus */
+}
+
+html {
+    scroll-behavior: smooth;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Custom Scrollbar for dark theme and log terminals */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #09090b; /* zinc-950 */
+}
+::-webkit-scrollbar-thumb {
+    background: #27272a; /* zinc-800 */
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46; /* zinc-700 */
+}
+
+/* Glassmorphism utility card */
+.glass-panel {
+    background: rgba(24, 24, 27, 0.4); /* zinc-900 at 40% */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(39, 39, 42, 0.8);
+}
+
+/* Touch active feedbacks (scale animations on click/tap) */
+.active-press:active {
+    transform: scale(0.97);
+}
+
+/* Custom Animations */
+@keyframes neon-pulse-violet {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+        border-color: rgba(139, 92, 246, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
+        border-color: rgba(139, 92, 246, 0.6);
+    }
+}
+
+@keyframes neon-pulse-emerald {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+    }
+}
+
+.animate-pulse-violet {
+    animation: neon-pulse-violet 2s infinite;
+}
+
+.animate-pulse-emerald {
+    animation: neon-pulse-emerald 2s infinite;
+}
+
+/* Drag and Drop Active Highlight State */
+#dropZone.drag-over {
+    border-color: #8b5cf6; /* violet-500 */
+    background: rgba(139, 92, 246, 0.08);
+    box-shadow: inset 0 0 15px rgba(139, 92, 246, 0.15), 0 0 15px rgba(139, 92, 246, 0.25);
+    transform: scale(1.01);
+}
+
+/* Accordion Smooth Height Transition */
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.accordion-item.active .accordion-content {
+    max-height: 500px; /* Safe limit, overwritten dynamically in JS */
+}
+
+.accordion-item.active .accordion-header i {
+    transform: rotate(180deg);
+    color: #8b5cf6; /* violet-500 */
+}
+
+.accordion-header {
+    transition: background-color 0.2s;
+}
+
+/* Segmented presets custom active styles */
+.preset-btn.active {
+    color: #ffffff;
+    background-color: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+}
