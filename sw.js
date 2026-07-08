@@ -1,32 +1,65 @@
 /* Service Worker for CharmeraTranscoder PWA */
 
-const CACHE_NAME = 'charmera-transcoder-v2';
+const CACHE_NAME = 'charmera-transcoder-v3';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
     './',
     './index.html',
     './app.js',
-    './styles.css',
+    './styles-compiled.css',
     'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-    'https://cdn.tailwindcss.com',
     './ffmpeg/ffmpeg.min.js',
     './ffmpeg/814.ffmpeg.js',
     './ffmpeg/ffmpeg-core.js',
     './ffmpeg/ffmpeg-core.wasm'
 ];
 
-// Install Event - Pre-cache critical files
+// Helper to check and override MIME types to resolve Windows Registry / Python server bugs
+async function getOverriddenResponse(url, response) {
+    if (!response || response.type === 'opaque' || response.status !== 200) {
+        return response;
+    }
+
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    let contentType = null;
+
+    if (cleanUrl.endsWith('.js')) {
+        contentType = 'text/javascript';
+    } else if (cleanUrl.endsWith('.wasm')) {
+        contentType = 'application/wasm';
+    } else if (cleanUrl.endsWith('.css')) {
+        contentType = 'text/css';
+    }
+
+    if (contentType) {
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set('Content-Type', contentType);
+        const blob = await response.blob();
+        return new Response(blob, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: newHeaders
+        });
+    }
+    return response;
+}
+
+// Install Event - Pre-cache critical files with MIME type correction
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
                 console.log('[Service Worker] Pre-caching application assets...');
-                // We map to avoid one failing asset breaking the entire installation cache
                 return Promise.all(
                     PRECACHE_ASSETS.map((url) => {
-                        return cache.add(new Request(url, { mode: 'cors' }))
+                        const fetchOptions = url.includes('http') ? { mode: 'cors' } : undefined;
+                        return fetch(url, fetchOptions)
+                            .then(async (response) => {
+                                const cleanResponse = await getOverriddenResponse(url, response);
+                                return cache.put(url, cleanResponse);
+                            })
                             .catch(err => console.error(`[Service Worker] Failed to cache: ${url}`, err));
                     })
                 );
@@ -53,10 +86,8 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Event - Cache First / Network Fallback with Dynamic Caching
 self.addEventListener('fetch', (event) => {
-    // Only cache GET requests
     if (event.request.method !== 'GET') return;
 
-    // Skip caching chrome-extension URLs or local dev hot-reloads
     const url = new URL(event.request.url);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
@@ -67,26 +98,24 @@ self.addEventListener('fetch', (event) => {
                     return cachedResponse;
                 }
 
-                // If not cached, fetch from network
                 return fetch(event.request)
-                    .then((networkResponse) => {
-                        // Check if valid response
+                    .then(async (networkResponse) => {
                         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'error') {
                             return networkResponse;
                         }
 
-                        // Cache the newly fetched file dynamically (e.g., dynamic webfonts, etc.)
-                        const responseToCache = networkResponse.clone();
+                        const cleanResponse = await getOverriddenResponse(event.request.url, networkResponse);
+                        const responseToCache = cleanResponse.clone();
+                        
                         caches.open(CACHE_NAME)
                             .then((cache) => {
                                 cache.put(event.request, responseToCache);
                             });
 
-                        return networkResponse;
+                        return cleanResponse;
                     })
                     .catch((err) => {
                         console.error('[Service Worker] Fetch failed:', err);
-                        // Optional offline fallback could be returned here if needed
                     });
             })
     );
