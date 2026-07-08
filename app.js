@@ -106,15 +106,17 @@ async function initFFmpeg() {
     // Load libraries from jsDelivr CDN
     // Using single-threaded core to support static GitHub Pages hosting
     const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+    const ffmpegURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd';
     try {
         appendLog('[Transcoder] Downloading core libraries (~31MB)...');
         updateProgress(0.1, 'Downloading core engine (cached on next load)...');
         
         const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
         const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+        const classWorkerURL = await toBlobURL(`${ffmpegURL}/814.ffmpeg.js`, 'text/javascript');
 
         updateProgress(0.3, 'Loading core WASM binary...');
-        await ffmpeg.load({ coreURL, wasmURL });
+        await ffmpeg.load({ coreURL, wasmURL, classWorkerURL });
         
         appendLog('[Transcoder] Engine loaded successfully.');
         return ffmpeg;
