@@ -1,5 +1,25 @@
 /* Core Application Logic for CharmeraTranscoder */
 
+// Force unregister any active Service Workers and clear caches to solve state conflicts
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        if (registrations.length > 0) {
+            console.log('[DEBUG] Active Service Worker found. Force unregistering...');
+            for (let registration of registrations) {
+                registration.unregister();
+            }
+            caches.keys().then(names => {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
+        }
+    });
+}
+
 let ffmpeg = null;
 let selectedFile = null;
 let selectedPreset = 'fast';
