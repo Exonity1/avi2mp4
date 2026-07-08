@@ -1,12 +1,13 @@
 /* Service Worker for CharmeraTranscoder PWA */
 
-const CACHE_NAME = 'charmera-transcoder-v6';
+const CACHE_NAME = 'charmera-transcoder-v7';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
     './',
     './index.html',
     './app.js',
+    './worker.js',
     './styles-compiled.css',
     'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',

@@ -1,10 +1,48 @@
 /* Core Application Logic for CharmeraTranscoder */
 
 
-let ffmpeg = null;
 let selectedFile = null;
 let selectedPreset = 'fast';
 let wakeLock = null;
+
+let transcoderWorker = null;
+let ffmpegLoaded = false;
+let resolveLoadPromise = null;
+let rejectLoadPromise = null;
+let resolveTranscodePromise = null;
+let rejectTranscodePromise = null;
+
+// Initialize Web Worker and hook message callbacks
+function initWorker() {
+    if (transcoderWorker) return;
+
+    transcoderWorker = new Worker('worker.js');
+
+    transcoderWorker.onmessage = (event) => {
+        const { type, data } = event.data;
+
+        switch (type) {
+            case 'LOADED':
+                if (resolveLoadPromise) resolveLoadPromise();
+                break;
+            case 'LOG':
+                appendLog(data);
+                break;
+            case 'PROGRESS':
+                // Pass encoding ratio back to the UI progress bar
+                updateProgress(data, 'Transcoding video streams...');
+                break;
+            case 'DONE':
+                if (resolveTranscodePromise) resolveTranscodePromise(data);
+                break;
+            case 'ERROR':
+                appendLog(`[Transcoder Error] ${data}`);
+                if (rejectLoadPromise) rejectLoadPromise(new Error(data));
+                if (rejectTranscodePromise) rejectTranscodePromise(new Error(data));
+                break;
+        }
+    };
+}
 
 // Custom toBlobURL implementation to load cross-origin worker resources
 async function toBlobURL(url, mimeType) {
@@ -84,42 +122,32 @@ function releaseWakeLock() {
 }
 
 // FFmpeg Engine Loader
+// FFmpeg Engine Loader via Web Worker
 async function initFFmpeg() {
-    if (ffmpeg) return ffmpeg;
+    if (ffmpegLoaded) return;
 
-    appendLog('[Transcoder] Starting conversion engine initialization...');
+    appendLog('[Transcoder] Starting conversion engine initialization in worker thread...');
     updateProgress(0, 'Initializing transcoder engine...');
 
-    const { createFFmpeg } = window.FFmpeg;
-    ffmpeg = createFFmpeg({
-        corePath: new URL('ffmpeg/ffmpeg-core.js?v=11', window.location.href).href,
-        mainName: 'main',
-        log: false // We capture logs manually via setLogger
-    });
+    initWorker();
 
-    // Set up logging hook
-    ffmpeg.setLogger(({ message }) => {
-        appendLog(message);
-    });
+    return new Promise((resolve, reject) => {
+        resolveLoadPromise = () => {
+            ffmpegLoaded = true;
+            appendLog('[Transcoder] Engine loaded successfully in background thread.');
+            resolve();
+        };
+        rejectLoadPromise = (err) => {
+            reject(err);
+        };
 
-    // Set up progress hook
-    ffmpeg.setProgress(({ ratio }) => {
-        // ratio is between 0 and 1
-        updateProgress(ratio, 'Transcoding video streams...');
+        transcoderWorker.postMessage({
+            type: 'LOAD',
+            data: {
+                corePath: new URL('ffmpeg/ffmpeg-core.js?v=11', window.location.href).href
+            }
+        });
     });
-
-    try {
-        appendLog('[Transcoder] Loading local transcoder assets (~31MB)...');
-        updateProgress(0.1, 'Loading local transcoder engine...');
-        
-        await ffmpeg.load();
-        
-        appendLog('[Transcoder] Engine loaded successfully.');
-        return ffmpeg;
-    } catch (error) {
-        appendLog(`[Transcoder Error] Failed to load core libraries: ${error.message}`);
-        throw error;
-    }
 }
 
 // Reset Selection UI
@@ -163,50 +191,39 @@ async function startTranscoding() {
         // Keep mobile phone awake
         await requestWakeLock();
 
-        // 1. Initialize engine
-        const engine = await initFFmpeg();
+        // 1. Initialize engine (loads worker if not already loaded)
+        await initFFmpeg();
 
         // 2. Read selected file
         appendLog(`[Transcoder] Reading local file: ${selectedFile.name} (${formatBytes(selectedFile.size)})`);
         updateProgress(0.4, 'Reading video data...');
         const arrayBuffer = await selectedFile.arrayBuffer();
 
-        // 3. Write to FFmpeg virtual filesystem
-        appendLog('[Transcoder] Mounting video file to virtual filesystem...');
-        engine.FS('writeFile', 'input.avi', new Uint8Array(arrayBuffer));
-
-        // 4. Run transcoding command
-        // Equivalent to: ffmpeg -i input.avi -c:v libx264 -crf 18 -preset [preset] -c:a aac -b:a 128k output.mp4
-        appendLog(`[Transcoder] Starting transcode using CRF 18, preset "${selectedPreset}", AAC audio...`);
-        updateProgress(0.5, 'Starting FFmpeg encoding...');
+        // 3. Run transcoding command in background worker
+        appendLog(`[Transcoder] Starting background transcode (CRF 18, preset "${selectedPreset}")...`);
+        updateProgress(0.5, 'Encoding video streams...');
 
         const startTime = performance.now();
-        await engine.run(
-            '-i', 'input.avi',
-            '-c:v', 'libx264',
-            '-crf', '18',
-            '-preset', selectedPreset,
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            'output.mp4'
-        );
+
+        const outputBuffer = await new Promise((resolve, reject) => {
+            resolveTranscodePromise = resolve;
+            rejectTranscodePromise = reject;
+            transcoderWorker.postMessage({
+                type: 'TRANSCODE',
+                data: {
+                    fileData: arrayBuffer,
+                    preset: selectedPreset
+                }
+            }, [arrayBuffer]);
+        });
+
         const endTime = performance.now();
         appendLog(`[Transcoder] Encoding finished in ${((endTime - startTime) / 1000).toFixed(2)} seconds.`);
 
-        // 5. Read result
-        updateProgress(0.95, 'Reading MP4 output file...');
-        appendLog('[Transcoder] Fetching encoded video from virtual filesystem...');
-        const data = engine.FS('readFile', 'output.mp4');
-
-        // 6. Create Blob URL
+        // 4. Create Blob URL from output buffer
         appendLog('[Transcoder] Creating preview URL...');
-        const videoBlob = new Blob([data], { type: 'video/mp4' });
+        const videoBlob = new Blob([outputBuffer], { type: 'video/mp4' });
         const videoURL = URL.createObjectURL(videoBlob);
-
-        // 7. Clean virtual filesystem to free WebAssembly memory
-        appendLog('[Transcoder] Unmounting files to release memory...');
-        engine.FS('unlink', 'input.avi');
-        engine.FS('unlink', 'output.mp4');
 
         // 8. Populate preview & download links
         const videoPreview = document.getElementById('videoPreview');
