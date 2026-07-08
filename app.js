@@ -130,9 +130,9 @@ async function initFFmpeg() {
         updateProgress(0.1, 'Loading local transcoder engine...');
         
         const version = 'v=4';
-        const coreURL = new URL(`ffmpeg/ffmpeg-core.js?${version}`, window.location.href).href;
-        const wasmURL = new URL(`ffmpeg/ffmpeg-core.wasm?${version}`, window.location.href).href;
-        const classWorkerURL = new URL(`ffmpeg/814.ffmpeg.js?${version}`, window.location.href).href;
+        const coreURL = await toBlobURL(new URL(`ffmpeg/ffmpeg-core.js?${version}`, window.location.href).href, 'text/javascript');
+        const wasmURL = await toBlobURL(new URL(`ffmpeg/ffmpeg-core.wasm?${version}`, window.location.href).href, 'application/wasm');
+        const classWorkerURL = await toBlobURL(new URL(`ffmpeg/814.ffmpeg.js?${version}`, window.location.href).href, 'text/javascript');
 
         updateProgress(0.3, 'Initializing WebAssembly binary...');
         await ffmpeg.load({ coreURL, wasmURL, classWorkerURL });
